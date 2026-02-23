@@ -8,7 +8,7 @@ on:
 jobs:
   scout:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repo
@@ -23,11 +23,11 @@ jobs:
         run: pip install requests beautifulsoup4 groq python-dotenv google-search-results apscheduler
 
       - name: Run scout
-        timeout-minutes: 7
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           SERP_API_KEY: ${{ secrets.SERP_API_KEY }}
-        run: timeout 360 python my_prototype_v2.py --once || true
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python my_prototype_v2.py --once
 
       - name: Commit results
         run: |
