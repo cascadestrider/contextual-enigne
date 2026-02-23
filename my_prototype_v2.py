@@ -1,4 +1,3 @@
-cat > my_prototype_v2.py << 'EOF'
 import os
 import sqlite3
 import requests
