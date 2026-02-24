@@ -22,6 +22,21 @@ REDDIT_HEADERS = {
     'User-Agent': 'AdScout/1.0 (lead research tool; contact via github)'
 }
 
+EXCLUDED_DOMAINS = [
+    "merriam-webster.com",
+    "dictionary.com",
+    "definitions.net",
+    "wiktionary.org",
+    "wikipedia.org",
+    "thefreedictionary.com",
+    "oed.com",
+    "dictionary.cambridge.org",
+    "britannica.com",
+]
+
+def is_excluded(url):
+    return any(domain in url for domain in EXCLUDED_DOMAINS)
+
 KEYWORDS = {
     "blinded by glare": 10, "can't see in sun": 10,
     "fog up": 9, "glasses fog": 9, "fogging up": 9,
@@ -142,7 +157,9 @@ def discover_urls_google():
             })
             results = search.get_dict()
             for r in results.get("organic_results", []):
-                urls.append(r["link"])
+                link = r["link"]
+                if not is_excluded(link):
+                    urls.append(link)
         except Exception as e:
             print(f"❌ Google search failed for '{query}': {e}")
     return list(set(urls))
@@ -160,7 +177,9 @@ def discover_urls_bing():
             })
             results = search.get_dict()
             for r in results.get("organic_results", []):
-                urls.append(r["link"])
+                link = r["link"]
+                if not is_excluded(link):
+                    urls.append(link)
         except Exception as e:
             print(f"❌ Bing search failed for '{query}': {e}")
     return list(set(urls))
