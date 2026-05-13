@@ -3,7 +3,7 @@ from itertools import cycle
 from typing import Optional
 import requests
 from norman.scouts.base import BaseScout
-from norman.events import TournamentEvent
+from norman.events import TournamentEvent, event_verification_keywords
 from norman.models import Lead, ScoutResult
 from norman.scoring_v2 import score_lead
 from norman.query_selector import pick_queries
@@ -88,6 +88,9 @@ class RedditScout(BaseScout):
         if event_queries and active_event is not None:
             event_cycle = cycle(event_queries)
             event_call_count = 0
+            event_keywords = event_verification_keywords(active_event)
+            event_total = 0
+            event_verified = 0
             for sub in all_subs:
                 term = next(event_cycle)
                 post_urls = self._search_subreddit(sub, term, errors)
@@ -98,14 +101,28 @@ class RedditScout(BaseScout):
                     visited_this_run.add(url)
                     lead = self._process_post(url, errors)
                     if lead and lead.score >= SCORE_THRESHOLD:
-                        lead.event_window = True
-                        lead.event_name = active_event.name
+                        event_total += 1
+                        title_lower = (lead.title or "").lower()
+                        if any(kw in title_lower for kw in event_keywords):
+                            lead.event_window = True
+                            lead.event_name = active_event.name
+                            event_verified += 1
+                        else:
+                            lead.event_window = False
+                            lead.event_name = ""
                         leads.append(lead)
                 time.sleep(1)
             notes.append(
                 f"Reddit event search: {len(event_queries)} queries cycled "
                 f"across {len(all_subs)} subs → {event_call_count} calls "
                 f"({active_event.name})"
+            )
+            pass_rate = (
+                round(100 * event_verified / event_total) if event_total else 0
+            )
+            notes.append(
+                f"  · Event verification: {event_verified}/{event_total} "
+                f"leads passed ({pass_rate}% pass rate)"
             )
 
         return ScoutResult(source=self.source, leads=leads, errors=errors, notes=notes)

@@ -22,6 +22,7 @@ __all__ = [
     "EVENTS_2026",
     "active_event_window",
     "event_query_combos",
+    "event_verification_keywords",
     "events_in_range",
 ]
 
@@ -188,3 +189,44 @@ def event_query_combos(event: TournamentEvent) -> list[str]:
         f"watching {event.name} polarized",
         f"{event.name} eye strain",
     ]
+
+
+def event_verification_keywords(event: TournamentEvent) -> list[str]:
+    """Return strict verification keywords for an event. A lead title must
+    contain at least one of these as a substring (case-insensitive) to
+    qualify as tournament-relevant.
+
+    Keywords derived from event metadata plus a small set of strict
+    tournament-context phrases.
+    """
+    kws: list[str] = []
+
+    # Full event name only — bare short forms like "pga" or "truist" match
+    # unrelated content (PGA Tour broadly, Truist Bank, etc.).
+    kws.append(event.name.lower())
+
+    # Venue full name and short form
+    kws.append(event.venue.lower())
+    # If venue is multi-word, also accept the first 2 words
+    # e.g., "Quail Hollow Club" → also accept "quail hollow"
+    venue_words = event.venue.split()
+    if len(venue_words) > 2:
+        kws.append(" ".join(venue_words[:2]).lower())
+
+    # Hashtags as plain text (without #) — for the rare case someone writes
+    # the hashtag-formatted text in Reddit
+    for h in event.hashtags:
+        kws.append(h.lstrip("#").lower())
+
+    # Strict tournament-context phrases (event-agnostic). Catch threads that
+    # are clearly about a tournament without naming a specific one.
+    kws.extend([
+        "the tournament this week",
+        "watching the tournament",
+        "this weekend's tournament",
+        "tournament sunday",
+        "the final round",
+    ])
+
+    # Dedupe preserving order
+    return list(dict.fromkeys(kws))
